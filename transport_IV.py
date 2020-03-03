@@ -215,7 +215,10 @@ def main():
     cxn = labrad.connect()
     reg = cxn.registry
     dv = cxn.data_vault
-    dc = cxn.dac_adc
+
+    dc1 = cxn.SIM900
+    dc2 = cxn.SIM900
+
     #mag = cxn.ami_430
     #mag.select_device()
     l1,l2 = lockin_select(cfg,cxn)
@@ -237,7 +240,8 @@ def main():
         lck2.select_device(l2)
 
 
-    dc.select_device()
+    dc1.select_device()
+    dc2.select_device()
     # dc.set_conversiontime(measurement_settings['read1'], ADC_CONVERSIONTIME)
     # dc.set_conversiontime(measurement_settings['read2'], ADC_CONVERSIONTIME)
 
