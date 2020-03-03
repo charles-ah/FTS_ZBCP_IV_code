@@ -1,0 +1,43 @@
+# NOTE: Only compatible with the new version of sr830 server (in scalabrad-0.83 folder)
+
+file:
+  data_dir: JRE10
+  file_name: R_2T_4K_m10V
+  comment: checkup, Vsi=-10V, somethin bad happened
+
+meas_parameters:
+  n0_pnts: 50
+  iv_pnts: 100
+  n0_rng: #n0 if there are two gates, vg if there is one
+    - -10.0
+    - 10.0
+  iv_rng: #output of DAC to sample, does note take divider into account
+    - -1.0
+    - 1.0
+  p0_fixed: 0.0
+  delta_var: 0.195
+  iv_rate: 0.1 #rate in V/s
+
+measurement:
+  terminals: 2 #only for recording purposes, not used
+  bias: V #V or I
+  gates: 2
+  voltage_divider: 1e6 #divider if bias = V, bias resistor in Ohms if bias = I
+  source: 1 #voltage sourced by DAC output
+  curr_preamp: 1 #current preamp measurrement in V/A
+
+#If autodetect_lockins: True, the # of lockins connected to labrad == # of lockins of the measurement, the lockins are detected by checking what mode (current or voltage) they are in.
+
+gate1:
+  type: vt #vt or vb
+  ch: 0
+  limits:
+    - -10.0
+    - 10.0
+
+gate2:
+  type: vb #vt or vb
+  ch: 1
+  limits:
+    - -5.0
+    - 5.0
