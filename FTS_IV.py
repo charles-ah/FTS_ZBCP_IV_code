@@ -198,22 +198,26 @@ def main():
     with open("config.yml", 'r') as ymlfile:
         cfg = yaml.load(ymlfile)
 
+    params = cfg['meas_parameters']
+    vbg_pnts = params['vbg_pnts']
+    iv_pnts = params['iv_pnts']
+    vbg_rng = params['vbg_rng']
+    iv_rng = params['iv_rng']
+    iv_rate = params['iv_rate']
+
     lockins = cfg['measurement']['lockins']
-    gates = cfg['measurement']['gates']
     lockin_type = cfg['measurement']['lockin_type']
-    measurement = cfg['measurement']
-    # measurement_settings = cfg[measurement]
     lockin1_settings = cfg['lockin1']
     if lockins == 2:
         lockin2_settings = cfg['lockin2']
-    meas_parameters = cfg['meas_parameters']
-    delta_var = meas_parameters['delta_var']
-
-    # Connections and Instrument Configurations
+        
+# Connections and Instrument Configurations
     cxn = labrad.connect()
     reg = cxn.registry
     dv = cxn.data_vault
-    dc = cxn.dac_adc
+
+    dc = cxn.SIM900
+
     #mag = cxn.ami_430
     #mag.select_device()
     l1,l2 = lockin_select(cfg,cxn)
@@ -236,6 +240,58 @@ def main():
 
 
     dc.select_device()
+
+    
+            
+'''
+def main():
+    # Loads config
+    with open("config.yml", 'r') as ymlfile:
+        cfg = yaml.load(ymlfile)
+
+    #print cfg
+    
+    lockins = cfg['measurement']['lockins']
+    gates = cfg['measurement']['gates']
+    lockin_type = cfg['measurement']['lockin_type']
+    measurement = cfg['measurement']
+    # measurement_settings = cfg[measurement]
+    lockin1_settings = cfg['lockin1']
+    if lockins == 2:
+        lockin2_settings = cfg['lockin2']
+    meas_parameters = cfg['meas_parameters']
+    delta_var = meas_parameters['delta_var']
+
+    # Connections and Instrument Configurations
+    cxn = labrad.connect()
+    reg = cxn.registry
+    dv = cxn.data_vault
+
+    dc = cxn.SIM900
+
+    #mag = cxn.ami_430
+    #mag.select_device()
+    l1,l2 = lockin_select(cfg,cxn)
+
+    if lockin_type == "SR830":
+        lck1 = cxn.sr830
+        lck1.select_device()
+        if lockins==2:
+            cxn2 = labrad.connect()
+            lck2= cxn2.sr830
+    elif  lockin_type == "SR860":
+        lck1 = cxn.sr860
+        if lockins==2:
+            cxn2 = labrad.connect()
+            lck2= cxn2.sr860
+
+    lck1.select_device(l1)
+    if lockins==2:
+        lck2.select_device(l2)
+
+
+    dc.select_device()
+    
     # dc.set_conversiontime(measurement_settings['read1'], ADC_CONVERSIONTIME)
     # dc.set_conversiontime(measurement_settings['read2'], ADC_CONVERSIONTIME)
 
@@ -267,24 +323,24 @@ def main():
 
     # setting gate sweep settings, if vt and vb are flipped, it changes which is 'X' and 'Y' to match the output of function_select
     if gates==1:
-        gate_ch1 = cfg['gate1']['ch']
+        vbias_ch = cfg['gate1']['ch']
         X_MIN = cfg['gate1']['limits'][0]
         X_MAX = cfg['gate1']['limits'][1]
         Y_MIN = -10.
         Y_MAX = 10.
     elif gates==2:
-        if cfg['gate1']['type'] == 'vt':
-            gate_ch1 = cfg['gate1']['ch']
+        if cfg['gate1']['type'] == 'v_bias':
+            vbias_ch = cfg['gate1']['ch']
             X_MIN = cfg['gate1']['limits'][0]
             X_MAX = cfg['gate1']['limits'][1]
-            gate_ch2 = cfg['gate2']['ch']
+            vbot_ch = cfg['gate2']['ch']
             Y_MIN = cfg['gate2']['limits'][0]
             Y_MAX = cfg['gate2']['limits'][1]
-        elif cfg['gate1']['type'] == 'vb':
-            gate_ch2 = cfg['gate1']['ch']
+        elif cfg['gate1']['type'] == 'v_bot':
+            vbot_ch = cfg['gate1']['ch']
             Y_MIN = cfg['gate1']['limits'][0]
             Y_MAX = cfg['gate1']['limits'][1]
-            gate_ch1 = cfg['gate2']['ch']
+            vbias_ch = cfg['gate2']['ch']
             X_MIN = cfg['gate2']['limits'][0]
             X_MAX = cfg['gate2']['limits'][1]
 
@@ -313,9 +369,9 @@ def main():
 
 
     if gates == 1:
-        dac_ch = [gate_ch1]
+        dc_ch = [vbias_ch]
     elif gates == 2:
-        dac_ch = [gate_ch1, gate_ch2]
+        dc_ch = [vbias_ch, vbot_ch]
     if lockins == 1:
         adc_ch = [cfg['lockin1']['ch_x'], cfg['lockin1']['ch_y']]
     elif lockins==2:
@@ -347,12 +403,12 @@ def main():
         if np.any(mask == True):
             start, stop = np.where(mask == True)[0][0], np.where(mask == True)[0][-1]
 
-            dc.set_voltage(dac_ch[0],vec_x[start])
+            dc.DC_set_voltage(dc_ch[0],vec_x[start])
             if gates==1:
                 vstart = [vec_x[start]]
                 vstop = [vec_x[stop]]
             if gates==2:
-                dc.set_voltage(dac_ch[1],vec_y[start])
+                dc.set_voltage(dc_ch[1],vec_y[start])
                 vstart = [vec_x[start], vec_y[start]]
                 vstop = [vec_x[stop], vec_y[stop]]
 
@@ -362,12 +418,16 @@ def main():
             # print(time.strftime("%Y-%m-%d %H:%M:%S"))
             print("{} of {}  --> Ramping. Points: {}".format(i + 1, num_y, num_points))
 
-            d_tmp = dc.buffer_ramp(dac_ch,
-                           adc_ch,
-                           vstart,
-                           vstop,
-                           int(num_points*SWEEP_MULT), DELAY_MEAS/SWEEP_MULT, ADC_AVGSIZE)
+            # d_tmp = dc.buffer_ramp(dc_ch,
+            #                adc_ch,
+            #                vstart,
+            #                vstop,
+            #                int(num_points*SWEEP_MULT), DELAY_MEAS/SWEEP_MULT, ADC_AVGSIZE)
 
+            
+            
+            d_tmp = dc.DC_set_voltage(dc_ch,vstart,vstop))
+            
             d_tmp = reshape_data(d_tmp,int(SWEEP_MULT))
 
 
@@ -417,7 +477,7 @@ def main():
     # dv.new(cfg['file']['file_name']+"-plot", ("i", "j", gate1, gate2),
     #        ('Ix', 'Iy', 'Vx', 'Vy', 'D', 'N', 'R', 'sigma', 't'))
     print("it took {} s. to write data".format(time.time() - t0))
-
+'''
 
 if __name__ == '__main__':
     main()

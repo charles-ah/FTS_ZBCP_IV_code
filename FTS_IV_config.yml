@@ -6,39 +6,37 @@ file:
   comment: checkup, Vsi=-10V, somethin bad happened
 
 meas_parameters:
-  vbg_pnts: 50 #nunmber of points taken for backgate voltage sweep
-  iv_pnts: 100 #number of points taken for dIdV vs bias voltage 
-  vbg_rng: #backgate range
+  n0_pnts: 50
+  iv_pnts: 100
+  n0_rng: #n0 if there are two gates, vg if there is one
     - -10.0
     - 10.0
-  iv_rng: #output of SIM DC module 
+  iv_rng: #output of DAC to sample, does note take divider into account
     - -1.0
     - 1.0
-#  p0_fixed: 0.0
-#  delta_var: 0.195
+  p0_fixed: 0.0
+  delta_var: 0.195
   iv_rate: 0.1 #rate in V/s
 
 measurement:
   terminals: 2 #only for recording purposes, not used
   bias: V #V or I
   gates: 2
-  lockins: 1
-  lockin_type: SR860
-#  voltage_divider: 1e6 #divider if bias = V, bias resistor in Ohms if bias = I
+  voltage_divider: 1e6 #divider if bias = V, bias resistor in Ohms if bias = I
   source: 1 #voltage sourced by DAC output
-#  curr_preamp: 1 #current preamp measurrement in V/A
+  curr_preamp: 1 #current preamp measurrement in V/A
 
 #If autodetect_lockins: True, the # of lockins connected to labrad == # of lockins of the measurement, the lockins are detected by checking what mode (current or voltage) they are in.
 
 gate1:
-  type: v_bias #v_bias or v_bot
+  type: vt #vt or vb
   ch: 0
   limits:
     - -10.0
     - 10.0
 
 gate2:
-  type: v_bot #v_bias or v_bot
+  type: vb #vt or vb
   ch: 1
   limits:
     - -5.0
